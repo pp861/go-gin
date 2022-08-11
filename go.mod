@@ -1,4 +1,4 @@
-module github.com/pp861/go-gin/ginhttp
+module github.com/pp861/go-gin
 
 go 1.14
 
