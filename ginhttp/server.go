@@ -78,9 +78,12 @@ func MWURLTagFunc(f func(u *url.URL) string) MWOption {
 func Middleware(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 	opts := mwOptions{
 		opNameFunc: func(r *http.Request) string {
-			return "HTTP " + r.Method
+			return "HttpServer Handle: " + r.URL.String()
 		},
-		spanFilter:   func(r *http.Request) bool { return true },
+		spanFilter: func(r *http.Request) bool {
+			_, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+			return err == nil
+		},
 		spanObserver: func(span opentracing.Span, r *http.Request) {},
 		urlTagFunc: func(u *url.URL) string {
 			return u.String()
