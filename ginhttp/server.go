@@ -1,3 +1,4 @@
+//go:build go1.7
 // +build go1.7
 
 // This is the middleware from github.com/opentracing-contrib/go-stdlib
@@ -79,6 +80,12 @@ func Middleware(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
+		// 只有上游有调用链信息传递过来，本服务才开启调用链
+		if parent := opentracing.SpanFromContext(c.Request.Context()); parent == nil {
+			c.Next()
+			return
+		}
+
 		carrier := opentracing.HTTPHeadersCarrier(c.Request.Header)
 		ctx, _ := tr.Extract(opentracing.HTTPHeaders, carrier)
 		op := opts.opNameFunc(c.Request)
