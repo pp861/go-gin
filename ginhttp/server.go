@@ -22,6 +22,7 @@ const defaultComponentName = "net/http"
 
 type mwOptions struct {
 	opNameFunc    func(r *http.Request) string
+	spanFilter    func(r *http.Request) bool
 	spanObserver  func(span opentracing.Span, r *http.Request)
 	urlTagFunc    func(u *url.URL) string
 	componentName string
@@ -43,6 +44,15 @@ func OperationNameFunc(f func(r *http.Request) string) MWOption {
 func MWComponentName(componentName string) MWOption {
 	return func(options *mwOptions) {
 		options.componentName = componentName
+	}
+}
+
+// MWSpanFilter returns a MWOption that filters requests from creating a span
+// for the server-side span.
+// Span won't be created if it returns false.
+func MWSpanFilter(f func(r *http.Request) bool) MWOption {
+	return func(options *mwOptions) {
+		options.spanFilter = f
 	}
 }
 
@@ -70,6 +80,7 @@ func Middleware(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 		opNameFunc: func(r *http.Request) string {
 			return "HTTP " + r.Method
 		},
+		spanFilter:   func(r *http.Request) bool { return true },
 		spanObserver: func(span opentracing.Span, r *http.Request) {},
 		urlTagFunc: func(u *url.URL) string {
 			return u.String()
@@ -80,8 +91,7 @@ func Middleware(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// 只有上游有调用链信息传递过来，本服务才开启调用链
-		if parent := opentracing.SpanFromContext(c.Request.Context()); parent == nil {
+		if !opts.spanFilter(c.Request) {
 			c.Next()
 			return
 		}
