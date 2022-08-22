@@ -81,7 +81,7 @@ func Middleware(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
 			return "HttpServer Handle: " + r.URL.String()
 		},
 		spanFilter: func(r *http.Request) bool {
-			_, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+			_, err := tr.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
 			return err == nil
 		},
 		spanObserver: func(span opentracing.Span, r *http.Request) {},
